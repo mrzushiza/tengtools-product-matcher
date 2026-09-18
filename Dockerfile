@@ -7,12 +7,11 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-COPY package.json package-lock.json* ./
-
-RUN npm ci --omit=dev && npm cache clean --force
-
 COPY . .
 
-RUN npm run build
+RUN npm install \
+    && npm run build \
+    && npm prune --omit=dev \
+    && npm cache clean --force
 
 CMD ["npm", "run", "docker-start"]
