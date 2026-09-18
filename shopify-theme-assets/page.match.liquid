@@ -85,6 +85,7 @@
   #tt-match .ttm-brands { display:flex; flex-wrap:wrap; gap:7px; margin-top:18px; }
   #tt-match .ttm-chip { padding:5px 9px; border:1px solid #d8dce1; border-radius:999px; color:#4d5561; background:#fafafa; font-size:12px; }
   #tt-match .ttm-statusline { min-height:22px; margin:18px 0 0; color:#3b4350; font-size:13px; }
+  #tt-match .ttm-statusline:empty { display:none; }
   #tt-match .ttm-statusline[data-tone="error"] { color:var(--review); font-weight:700; }
   #tt-match .ttm-statusline[data-tone="success"] { color:var(--green); font-weight:700; }
   #tt-match .ttm-suggestions { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:18px; }
@@ -274,7 +275,7 @@
     #tt-match .ttm-avatar { flex-basis:34px; width:34px; height:34px; font-size:11px; }
     #tt-match .ttm-account strong { margin-bottom:2px; font-size:12px; }
     #tt-match .ttm-panel { margin-top:16px; }
-    #tt-match .ttm-start { padding:22px 14px 20px; }
+    #tt-match .ttm-start { padding:22px 14px; }
     #tt-match .ttm-start h2,#tt-match .ttm-results-head h2 { font-size:20px; }
     #tt-match .ttm-start h2:after,#tt-match .ttm-results-head h2:after { width:42px; height:3px; margin-top:9px; }
     #tt-match .ttm-start-intro { margin:7px 0 15px; font-size:12px; line-height:1.45; }
