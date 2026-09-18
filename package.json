@@ -75,9 +75,5 @@
   "resolutions": {
     "qs": "^6.16.0"
   },
-  "pnpm": {
-    "overrides": {
-      "qs": "^6.16.0"
-    }
-  }
+  "packageManager": "npm@10.8.2"
 }
