@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "fc1622b3e7a3d5b4aff2b954af8f5ece"
-application_url = "https://shopify.dev/apps/default-app-home"
+application_url = "https://tengtools-product-matcher.onrender.com"
 embedded = true
 name = """
 TengTools Matcher Sessions
@@ -12,7 +12,7 @@ TengTools Matcher Sessions
 scopes = "read_customers,write_customers"
 
 [app_proxy]
-url = "/apps/matcher-sessions"
+url = "https://tengtools-product-matcher.onrender.com/apps/matcher-sessions"
 prefix = "apps"
 subpath = "matcher-sessions"
 
@@ -133,7 +133,7 @@ api_version = "2026-10"
   topics = [ "app/scopes_update" ]
 
 [auth]
-redirect_urls = [ "https://shopify.dev/apps/default-app-home/api/auth" ]
+redirect_urls = [ "https://tengtools-product-matcher.onrender.com/api/auth" ]
 
 [build]
 include_config_on_deploy = true
