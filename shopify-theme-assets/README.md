@@ -1,7 +1,8 @@
 # Shopify theme asset
 
-`tt-match.js` is the version-controlled storefront matcher used by the live
-Shopify page. Deploy only this file to the live theme's `assets/tt-match.js`.
+`tt-match.js` and `page.match.liquid` are the version-controlled storefront
+matcher used by the live Shopify page. Deploy them to the live theme as
+`assets/tt-match.js` and `templates/page.match.liquid`.
 
-The working preview also loads the matching workspace copy from
-`../theme-assets/tt-match.js`. Keep the two copies identical before release.
+The working preview loads the matching workspace copies from `../theme-assets`
+and `../templates`. Keep both pairs identical before release.
