@@ -82,9 +82,6 @@
   #tt-match .ttm-scope-option:has(input:checked) .ttm-scope-icon--active { display:block; }
   #tt-match .ttm-scope-option:has(input:checked) .ttm-scope-icon--inactive { display:none; }
   #tt-match .ttm-scope-note { display:block; margin-top:8px; color:var(--muted); font-size:12px; line-height:1.4; }
-  #tt-match .ttm-ai-control { display:flex; align-items:center; gap:8px; margin-top:12px; color:#4a525d; font-size:12px; }
-  #tt-match .ttm-ai-control input { width:16px; height:16px; margin:0; accent-color:#111; }
-  #tt-match .ttm-ai-control strong { color:#222831; font-weight:700; }
   #tt-match .ttm-brands { display:flex; flex-wrap:wrap; gap:7px; margin-top:18px; }
   #tt-match .ttm-chip { padding:5px 9px; border:1px solid #d8dce1; border-radius:999px; color:#4d5561; background:#fafafa; font-size:12px; }
   #tt-match .ttm-statusline { min-height:22px; margin:18px 0 0; color:#3b4350; font-size:13px; }
@@ -289,7 +286,6 @@
     #tt-match .ttm-scope-options { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,.72fr) minmax(0,1.08fr); gap:4px; }
     #tt-match .ttm-scope-option { justify-content:center; width:100%; min-width:0; padding:7px 5px; font-size:10px; white-space:nowrap; }
     #tt-match .ttm-scope-icon { width:14px; height:14px; margin-right:4px; }
-    #tt-match .ttm-ai-control { align-items:flex-start; font-size:11px; line-height:1.4; }
     #tt-match .ttm-tools .ttm-quiet,#tt-match .ttm-scope-option,#tt-match .ttm-action-menu summary { min-height:44px; }
     #tt-match .ttm-suggestions { grid-template-columns:1fr; }
     #tt-match .ttm-suggestion { grid-template-columns:56px minmax(0,1fr); padding:12px; }
@@ -408,7 +404,6 @@
             <label class="ttm-scope-option"><input type="checkbox" name="ttm-product-type" value="set" checked><svg class="ttm-scope-icon ttm-scope-icon--active" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m8 12 3 3 5-6"></path></svg><svg class="ttm-scope-icon ttm-scope-icon--inactive" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8M8 12h8"></path></svg>Sets</label>
             <label class="ttm-scope-option"><input type="checkbox" name="ttm-product-type" value="kit"><svg class="ttm-scope-icon ttm-scope-icon--active" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m8 12 3 3 5-6"></path></svg><svg class="ttm-scope-icon ttm-scope-icon--inactive" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8M8 12h8"></path></svg>Complete kits</label>
           </div>
-          <label class="ttm-ai-control"><input id="ttm-ai-enabled" type="checkbox" checked><span><strong>Enhanced review</strong> for uncertain and competitor items</span></label>
         </fieldset>
         <p id="ttm-status" class="ttm-statusline" role="status" aria-live="polite">Loading the TengTools product master…</p>
         <div id="ttm-suggestions" class="ttm-suggestions" hidden></div>
