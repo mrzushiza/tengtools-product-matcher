@@ -62,7 +62,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (body.action === "analyze") {
     const customerId = customerIdFromRequest(request);
     if (!customerId) {
-      return json({ error: "Sign in to use AI-assisted matching." }, { status: 401 });
+      return json({ error: "Sign in to use enhanced matching." }, { status: 401 });
     }
     try {
       const matches = await analyzeToolMatches(body.items, request.signal);
@@ -71,7 +71,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       if (error instanceof Response) {
         return json({ error: await error.text() }, { status: error.status });
       }
-      return json({ error: "AI-assisted matching failed." }, { status: 502 });
+      return json({ error: "Enhanced matching failed." }, { status: 502 });
     }
   }
   if (body.action !== "save") {

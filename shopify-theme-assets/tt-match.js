@@ -13,6 +13,7 @@
   var els={form:$('ttm-search-form'),searchPanel:$('ttm-start-panel'),startTitle:$('ttm-start-title'),startIntro:$('ttm-start-intro'),manualBanner:$('ttm-manual-context'),manualLabel:$('ttm-manual-label'),manualCancel:$('ttm-manual-cancel'),query:$('ttm-query'),file:$('ttm-file'),status:$('ttm-status'),suggestions:$('ttm-suggestions'),pagination:$('ttm-pagination'),body:$('ttm-body'),empty:$('ttm-empty'),download:$('ttm-download'),clearSaved:$('ttm-clear-saved'),saveSession:$('ttm-save-session'),savedSessions:$('ttm-saved-sessions'),saveState:$('ttm-save-state'),saveDialog:$('ttm-save-dialog'),saveForm:$('ttm-save-form'),sessionName:$('ttm-session-name'),sessionStatus:$('ttm-session-status'),sessionsDialog:$('ttm-sessions-dialog'),sessionList:$('ttm-session-list'),aiEnabled:$('ttm-ai-enabled'),dataInfoTrigger:$('ttm-info-trigger'),dataInfoBox:$('ttm-info-box'),dataInfoClose:$('ttm-info-close'),clearDialog:$('ttm-clear-dialog'),clearFinalDialog:$('ttm-clear-final-dialog'),uploadDialog:$('ttm-upload-dialog'),uploadFileName:$('ttm-upload-filename'),uploadMessage:$('ttm-upload-message'),uploadProgress:$('ttm-upload-progress'),uploadPercent:$('ttm-upload-percent'),uploadCancel:$('ttm-upload-cancel'),columnsTrigger:$('ttm-columns-trigger'),columnsMenu:$('ttm-columns-menu'),columnOptions:$('ttm-column-options')};
 
   function text(v){return v===undefined||v===null?'':String(v).trim();}
+  function skuKey(v){return text(v).toUpperCase().replace(/[^A-Z0-9]/g,'');}
   function clean(v){return text(v).toLowerCase().replace(/[™®©]/g,'').replace(/([a-z])([0-9])/g,'$1 $2').replace(/([0-9])([a-z])/g,'$1 $2').replace(/[^a-z0-9]+/g,' ').replace(/\binsulted\b/g,'insulated').replace(/\ballenkeys?\b/g,'allen key').replace(/\blongnose\b/g,'long nose').replace(/\bfarrel\b/g,'ferrule').replace(/\bmultipul\b/g,'multiple').trim();}
   function displayCase(value){
     var source=text(value).replace(/\s+/g,' ').trim(),letters=source.replace(/[^A-Za-z]/g,'');
@@ -24,6 +25,7 @@
       var lower=part.toLowerCase();return lower.charAt(0).toUpperCase()+lower.slice(1);
     }).join('');
   }
+  function shortUnit(value){var unit=text(value);return /^(?:piece|pieces|pc|pcs)$/i.test(unit)?'pc':unit;}
   function esc(v){return text(v).replace(/[&<>'"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];});}
   function icon(name){
     var paths={check:'<path d="m5 12 4 4L19 6"></path>',plus:'<path d="M12 5v14M5 12h14"></path>',previous:'<path d="m15 18-6-6 6-6"></path>',next:'<path d="m9 18 6-6-6-6"></path>',ignore:'<circle cx="12" cy="12" r="9"></circle><path d="m6 6 12 12"></path>',warning:'<path d="M12 3 2.5 20h19L12 3Z"></path><path d="M12 9v4M12 17h.01"></path>',confirmed:'<circle cx="12" cy="12" r="9"></circle><path d="m8 12 3 3 5-6"></path>',restore:'<path d="M4 7v5h5"></path><path d="M5.5 16a8 8 0 1 0 .5-9l-2 5"></path>',search:'<circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path>',trash:'<path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13"></path>',close:'<path d="m6 6 12 12M18 6 6 18"></path>',expand:'<path d="m8 10 4 4 4-4"></path>',collapse:'<path d="m8 14 4-4 4 4"></path>',parts:'<path d="M4 6h16M4 12h16M4 18h16"></path>',duplicate:'<rect x="8" y="8" width="11" height="11" rx="1"></rect><path d="M16 8V5H5v11h3"></path>',info:'<circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7h.01"></path>',tag:'<path d="M20 13 13 20 4 11V4h7l9 9Z"></path><path d="M8 8h.01"></path>'};
@@ -257,7 +259,7 @@
       product.unspsc=fallback.code;product.unspscTitle=fallback.title;product.unspscVersion=fallback.version||'UNv260801';product.confidence='Category-derived';product.reviewStatus='Confirm category-derived UNSPSC';product.unspscSource='category';
     });
   }
-  function indexProducts(){productsByFamily={};productsBySku={};products.forEach(function(product){var key=product._family||'other';(productsByFamily[key]||(productsByFamily[key]=[])).push(product);productsBySku[clean(product.sku)]=product;});}
+  function indexProducts(){productsByFamily={};productsBySku={};products.forEach(function(product){var key=product._family||'other';(productsByFamily[key]||(productsByFamily[key]=[])).push(product);productsBySku[skuKey(product.sku)]=product;});}
   function catalogArray(payload){
     if(Array.isArray(payload))return payload;
     if(payload&&Array.isArray(payload.items))return payload.items;
@@ -355,9 +357,9 @@
     if(focusPage){var active=els.pagination.querySelector('[aria-current="page"]');if(active)active.focus();}
   }
   function rowFromInput(input){
-    var brand=displayCase(input.inputBrand||input.brand),title=displayCase(input.inputTitle||input.description||input.title),id=text(input.inputId||input.itemId||input.sku)||leadingItemCode(title),qty=text(input.quantity||input.qty),unit=text(input.unit),sourceLine=text(input.sourceLine||input.lineNumber||input.line);
+    var brand=displayCase(input.inputBrand||input.brand),title=displayCase(input.inputTitle||input.description||input.title),id=text(input.inputId||input.itemId||input.sku)||leadingItemCode(title),qty=text(input.quantity||input.qty),unit=shortUnit(input.unit),sourceLine=text(input.sourceLine||input.lineNumber||input.line);
     var brandAllowsExact=!brand||/^(?:n a|not supplied|unknown)$/.test(clean(brand))||clean(brand).indexOf('teng')!==-1;
-    var exact=id&&brandAllowsExact?products.find(function(p){return clean(p.sku)===clean(id);}):null;
+    var exact=id&&brandAllowsExact?productsBySku[skuKey(id)]||null:null;
     var matchQuery=title||id,suggestions=findProducts(matchQuery,12),automatic=exact||automaticCandidate(matchQuery,suggestions),candidate=automatic||reviewCandidate(matchQuery,suggestions);
     var confirmed=!!exact,capability=candidate?capabilityAssessment(matchQuery,candidate):null,identified=identifyRequestedItem(matchQuery);
     var isGroup=groupedInput(unit,title);
@@ -406,6 +408,7 @@
     return (Array.isArray(list)?list:[]).map(function(row){
       row.inputBrand=displayCase(row.inputBrand);
       row.inputTitle=displayCase(row.inputTitle);
+      row.unit=shortUnit(row.unit);
       if(Array.isArray(row.components))row.components.forEach(function(component){component.description=displayCase(component.description);});
       return row;
     });
@@ -447,7 +450,7 @@
     item.decision='Needs review';
   }
   function refreshMatchedMetadata(item,query){
-    if(!item.tengSku)return false;var product=productsBySku[clean(item.tengSku)];if(!product)return false;
+    if(!item.tengSku)return false;var product=productsBySku[skuKey(item.tengSku)];if(!product)return false;
     var changed=item.unspsc!==product.unspsc||item.tengTitle!==product.title||item.tengHandle!==product.handle;
     item.tengTitle=product.title;item.tengImage=product.image;item.tengHandle=product.handle;item.productClass=product.productClass;item.unspsc=product.unspsc;item.unspscTitle=product.unspscTitle;item.unspscVersion=product.unspscVersion||'UNv260801';item.unspscConfidence=product.confidence;item.unspscReviewStatus=product.reviewStatus;item.unspscSource=product.unspscSource||'';item.category=categoryLabel(productFamily(query)||product._family);return changed;
   }
@@ -550,7 +553,7 @@
   function aiCandidateShortlist(row,assessment){
     var original=row.inputTitle||row.inputId,queries=[original],identified=text(assessment&&assessment.identifiedAs),family=text(assessment&&assessment.toolFamily);
     if(identified)queries.push(identified);if(family)queries.push(family);if(identified&&family)queries.push(identified+' '+family);
-    var seen={},list=[];queries.forEach(function(query){findProducts(query,12,true).forEach(function(item){var key=clean(item.product.sku);if(!seen[key]){seen[key]=true;list.push(item.product);}});});
+    var seen={},list=[];queries.forEach(function(query){findProducts(query,12,true).forEach(function(item){var key=skuKey(item.product.sku);if(!seen[key]){seen[key]=true;list.push(item.product);}});});
     return list.slice(0,12);
   }
   function aiInputPayload(row,assessment){
@@ -559,25 +562,26 @@
   function clearSuggestedProduct(row){row.tengSku='';row.tengTitle='';row.tengImage='';row.tengHandle='';row.productClass='';row.unspsc='';row.unspscTitle='';row.unspscConfidence='';row.unspscReviewStatus='';row.unspscSource='';}
   function applyAiAssessment(row,assessment){
     row.identifiedAs=text(assessment.identifiedAs)||row.identifiedAs;row.equivalence=text(assessment.equivalence);row.aiConfidence=text(assessment.confidence);row.aiSources=Array.isArray(assessment.sources)?assessment.sources:[];
-    var candidate=assessment.candidateSku?productsBySku[clean(assessment.candidateSku)]:null;
+    var candidate=assessment.candidateSku?productsBySku[skuKey(assessment.candidateSku)]:null;
     if(candidate){row.tengSku=candidate.sku;row.tengTitle=candidate.title;row.tengImage=candidate.image;row.tengHandle=candidate.handle;row.productClass=candidate.productClass;row.unspsc=candidate.unspsc;row.unspscTitle=candidate.unspscTitle;row.unspscVersion=candidate.unspscVersion||'UNv260801';row.unspscConfidence=candidate.confidence;row.unspscReviewStatus=candidate.reviewStatus;row.unspscSource=candidate.unspscSource||'';}
     else if(assessment.equivalence==='no-equivalent')clearSuggestedProduct(row);
     var identifiedFamily=productFamily([assessment.identifiedAs,assessment.toolFamily,row.inputTitle].join(' '));if(identifiedFamily){row.detectedFamily=familyLabel(identifiedFamily);row.category=categoryLabel(identifiedFamily);}
     var query=row.inputTitle||row.inputId,queryFamily=identifiedFamily||productFamily(query),localSafe=!!(candidate&&queryFamily&&candidate._family&&compatibleFamily(queryFamily,candidate._family)&&capabilityAssessment(query,candidate).safe&&specificationCompatible(query,candidate._searchText));
-    var autoConfirmed=!!(candidate&&assessment.equivalence==='equivalent'&&assessment.confidence==='high'&&!assessment.requiresReview&&localSafe);
-    row.status=autoConfirmed?'matched':'review';row.matchType=autoConfirmed?'AI-verified equivalent':assessment.equivalence==='closest-alternative'?'AI closest alternative':assessment.equivalence==='equivalent'?'AI-assisted suggestion':'No safe equivalent';row.reason=text(assessment.reason)||row.reason;row.matchWarning=(Array.isArray(assessment.warnings)?assessment.warnings.map(text).filter(Boolean).join(' '):'')||(assessment.requiresReview?'AI review required':'');row.decision=autoConfirmed?'Automatic AI match':'Needs review';
+    var tengIdentityConflict=!!(candidate&&row.inputId&&clean(row.inputBrand).indexOf('teng')!==-1&&skuKey(candidate.sku)!==skuKey(row.inputId));
+    var autoConfirmed=!!(candidate&&!tengIdentityConflict&&assessment.equivalence==='equivalent'&&assessment.confidence==='high'&&!assessment.requiresReview&&localSafe);
+    row.status=autoConfirmed?'matched':'review';row.matchType=autoConfirmed?'Verified equivalent':assessment.equivalence==='closest-alternative'?'Closest alternative':assessment.equivalence==='equivalent'?'Suggested equivalent':'No safe equivalent';row.reason=text(assessment.reason)||row.reason;row.matchWarning=tengIdentityConflict?'The supplied TengTools item ID does not exactly match this product. Verify the item ID before selection.':((Array.isArray(assessment.warnings)?assessment.warnings.map(text).filter(Boolean).join(' '):'')||(assessment.requiresReview?'Review required':''));row.decision=autoConfirmed?'Automatic match':'Needs review';
   }
   async function aiReviewRows(imported,job){
     if(!els.aiEnabled||!els.aiEnabled.checked||!sessionApiUrl)return {used:false,reviewed:0};
     var targets=imported.filter(function(row){return row.status==='review'&&!row.isGroup&&(row.inputTitle||row.inputId);}),reviewedRows={};
     if(!targets.length)return {used:false,reviewed:0};
     for(var start=0;start<targets.length;start+=30){
-      if(job.cancelled)throw new Error('cancelled');var batch=targets.slice(start,start+30);setUploadProgress(job,83+(start/targets.length)*15,'AI is identifying and reviewing row '+(start+1)+' of '+targets.length+'…');
+      if(job.cancelled)throw new Error('cancelled');var batch=targets.slice(start,start+30);setUploadProgress(job,83+(start/targets.length)*15,'Identifying and reviewing row '+(start+1)+' of '+targets.length+'…');
       var result;
       try{result=await sessionRequest({}, {method:'POST',signal:job.controller.signal,headers:{'Accept':'application/json','Content-Type':'application/json'},body:JSON.stringify({action:'analyze',items:batch.map(aiInputPayload)})});}
       catch(error){if(job.cancelled||error.name==='AbortError')throw new Error('cancelled');return {used:false,reviewed:Object.keys(reviewedRows).length,error:error};}
       var assessments=result.matches||[],refine=[];assessments.forEach(function(assessment){var row=batch.find(function(item){return Number(item.row)===Number(assessment.row);});if(!row)return;applyAiAssessment(row,assessment);reviewedRows[row.row]=true;if(!assessment.candidateSku||assessment.equivalence==='no-equivalent'||assessment.confidence==='low')refine.push({row:row,assessment:assessment});});
-      if(refine.length){setUploadProgress(job,86+(start/targets.length)*12,'AI is checking refined TengTools candidates…');var refinedResult;try{refinedResult=await sessionRequest({}, {method:'POST',signal:job.controller.signal,headers:{'Accept':'application/json','Content-Type':'application/json'},body:JSON.stringify({action:'analyze',items:refine.map(function(item){return aiInputPayload(item.row,item.assessment);})})});}catch(error){if(job.cancelled||error.name==='AbortError')throw new Error('cancelled');refinedResult={matches:[]};}(refinedResult.matches||[]).forEach(function(assessment){var item=refine.find(function(entry){return Number(entry.row.row)===Number(assessment.row);});if(item)applyAiAssessment(item.row,assessment);});}
+      if(refine.length){setUploadProgress(job,86+(start/targets.length)*12,'Checking refined TengTools candidates…');var refinedResult;try{refinedResult=await sessionRequest({}, {method:'POST',signal:job.controller.signal,headers:{'Accept':'application/json','Content-Type':'application/json'},body:JSON.stringify({action:'analyze',items:refine.map(function(item){return aiInputPayload(item.row,item.assessment);})})});}catch(error){if(job.cancelled||error.name==='AbortError')throw new Error('cancelled');refinedResult={matches:[]};}(refinedResult.matches||[]).forEach(function(assessment){var item=refine.find(function(entry){return Number(entry.row.row)===Number(assessment.row);});if(item)applyAiAssessment(item.row,assessment);});}
       await nextFrame();
     }
     return {used:true,reviewed:Object.keys(reviewedRows).length};
@@ -630,7 +634,7 @@
       if(name.endsWith('.csv')){var csvText=await file.text();if(job.cancelled)throw new Error('cancelled');setUploadProgress(job,45,'Identifying columns and rows…');inputs=rowsFromGrid(parseCsv(csvText));}
       else if(name.endsWith('.xlsx')||name.endsWith('.xls')){setUploadProgress(job,10,'Loading the Excel reader…');await loadLibrary(xlsxUrl,'XLSX');if(job.cancelled)throw new Error('cancelled');var buffer=await file.arrayBuffer();if(job.cancelled)throw new Error('cancelled');setUploadProgress(job,38,'Reading the first worksheet…');await nextFrame();var book=window.XLSX.read(buffer,{type:'array'});if(job.cancelled)throw new Error('cancelled');var sheet=book.Sheets[book.SheetNames[0]],grid=window.XLSX.utils.sheet_to_json(sheet,{header:1,defval:''});setUploadProgress(job,65,'Identifying columns and rows…');inputs=rowsFromGrid(grid);}
       else if(name.endsWith('.pdf')||file.type==='application/pdf')inputs=await readPdf(file,job);else throw new Error('Please upload an Excel, CSV or PDF file.');
-      if(job.cancelled)throw new Error('cancelled');if(!inputs.length)throw new Error('No product rows could be identified in this file.');sourceFileName=file.name;currentSessionHandle='';currentSessionName='';var imported=await importInputs(inputs,file.name,job);if(!imported)throw new Error('cancelled');var aiResult=await aiReviewRows(imported,job);if(job.cancelled)throw new Error('cancelled');rows=rows.concat(imported);render();setStatus(imported.length+' row'+(imported.length===1?'':'s')+' imported from '+file.name+'. '+(aiResult.used?aiResult.reviewed+' uncertain row'+(aiResult.reviewed===1?' was':'s were')+' reviewed by AI. ':'AI review was unavailable; local matching was retained. ')+'Review every red row before downloading.','success');setUploadProgress(job,100,'Import and matching complete');els.uploadCancel.disabled=true;els.uploadCancel.innerHTML=icon('check')+'Complete';setTimeout(function(){closeUploadProgress(job);},450);
+      if(job.cancelled)throw new Error('cancelled');if(!inputs.length)throw new Error('No product rows could be identified in this file.');sourceFileName=file.name;currentSessionHandle='';currentSessionName='';var imported=await importInputs(inputs,file.name,job);if(!imported)throw new Error('cancelled');var aiResult=await aiReviewRows(imported,job);if(job.cancelled)throw new Error('cancelled');rows=rows.concat(imported);render();setStatus(imported.length+' row'+(imported.length===1?'':'s')+' imported from '+file.name+'. '+(aiResult.used?aiResult.reviewed+' uncertain row'+(aiResult.reviewed===1?' was':'s were')+' reviewed. ':'Enhanced review was unavailable; local matching was retained. ')+'Review every red row before downloading.','success');setUploadProgress(job,100,'Import and matching complete');els.uploadCancel.disabled=true;els.uploadCancel.innerHTML=icon('check')+'Complete';setTimeout(function(){closeUploadProgress(job);},450);
     }catch(error){if(error.message==='cancelled'){setStatus('Upload cancelled. No rows were added.','error');setUploadProgress(job,0,'Upload cancelled. No rows were added.');}else{setStatus(error.message||'This file could not be read.','error');setUploadProgress(job,0,error.message||'This file could not be read.');}closeUploadProgress(job);}
     els.file.value='';
   }

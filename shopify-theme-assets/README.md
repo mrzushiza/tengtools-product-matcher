@@ -6,3 +6,7 @@ matcher used by the live Shopify page. Deploy them to the live theme as
 
 The working preview loads the matching workspace copies from `../theme-assets`
 and `../templates`. Keep both pairs identical before release.
+
+`catalogue-corrections.json` records verified catalogue products that are
+missing from the generated product master. Item IDs in this file are distinct
+products, never aliases for similar or prefix-related IDs.

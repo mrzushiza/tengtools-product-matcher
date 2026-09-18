@@ -113,7 +113,7 @@ function responseText(payload: Record<string, unknown>) {
 export async function analyzeToolMatches(value: unknown, signal?: AbortSignal) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    throw new Response("AI-assisted matching is not configured yet.", { status: 503 });
+    throw new Response("Enhanced matching is not configured yet.", { status: 503 });
   }
   const items = sanitizeMatchItems(value);
   if (!items.length) throw new Response("No matching rows were supplied.", { status: 400 });
@@ -134,7 +134,7 @@ export async function analyzeToolMatches(value: unknown, signal?: AbortSignal) {
       max_tool_calls: Math.min(12, Math.max(5, Math.ceil(items.length / 3))),
       max_output_tokens: 6000,
       instructions:
-        "You are a cautious industrial-tool cross-reference specialist. First identify each requested item accurately, even when it is outside the TengTools range. Use web search when a competitor brand/model or ambiguous trade term needs verification, preferring manufacturer sources. A preliminaryIdentification or preliminaryToolFamily may come from an earlier pass: verify it rather than trusting it blindly. Then assess only the supplied TengTools candidates. candidateSku must be one of the supplied candidate SKUs or an empty string. Never select a product merely because one generic keyword overlaps. Treat tool family, operating method, dimensions, capacity, electrical rating, drive size, material, and set composition as hard evidence. Equivalent means the same practical purpose with no material capability mismatch. If the closest candidate differs materially, label it closest-alternative, require review, and state every important mismatch. If no same-purpose candidate exists, return no-equivalent and an empty candidateSku. Do not turn a closest alternative into a confirmed equivalent.",
+        "You are a cautious industrial-tool cross-reference specialist. First identify each requested item accurately, even when it is outside the TengTools range. Use web search when a competitor brand/model or ambiguous trade term needs verification, preferring manufacturer sources. A preliminaryIdentification or preliminaryToolFamily may come from an earlier pass: verify it rather than trusting it blindly. Then assess only the supplied TengTools candidates. candidateSku must be one of the supplied candidate SKUs or an empty string. TengTools item IDs are exact identities: preserve every letter, number, and suffix, and never treat a similar or prefix-related item ID as the same product. Never select a product merely because one generic keyword overlaps. Treat tool family, operating method, dimensions, capacity, electrical rating, drive size, material, and set composition as hard evidence. Equivalent means the same practical purpose with no material capability mismatch. If the closest candidate differs materially, label it closest-alternative, require review, and state every important mismatch. If no same-purpose candidate exists, return no-equivalent and an empty candidateSku. Do not turn a closest alternative into a confirmed equivalent.",
       input: JSON.stringify({ items }),
       text: {
         verbosity: "low",
@@ -153,7 +153,7 @@ export async function analyzeToolMatches(value: unknown, signal?: AbortSignal) {
     const error = payload.error && typeof payload.error === "object"
       ? short((payload.error as Record<string, unknown>).message, 300)
       : "";
-    throw new Response(error || "AI-assisted matching failed.", { status: response.status });
+    throw new Response(error || "Enhanced matching failed.", { status: response.status });
   }
 
   const parsed = JSON.parse(responseText(payload) || "{}") as {
