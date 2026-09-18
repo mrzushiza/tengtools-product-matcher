@@ -1,41 +1,140 @@
-# This file stores configurations for your Shopify app.
-client_id = ""
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "fc1622b3e7a3d5b4aff2b954af8f5ece"
+application_url = "https://shopify.dev/apps/default-app-home"
+embedded = true
+name = """
+TengTools Matcher Sessions
+"""
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products"
+scopes = "read_customers,write_customers"
+
+[app_proxy]
+url = "/apps/matcher-sessions"
+prefix = "apps"
+subpath = "matcher-sessions"
+
+[metaobjects.app.match_session]
+name = "Product matcher session"
+description = "A saved TengTools product-matching review belonging to a Shopify customer."
+display_name_field = "name"
+
+  [metaobjects.app.match_session.access]
+  admin = "merchant_read"
+  storefront = "none"
+
+[metaobjects.app.match_session.fields.name]
+name = "Session name"
+type = "single_line_text_field"
+required = true
+
+  [metaobjects.app.match_session.fields.name.validations]
+  max = 120
+
+[metaobjects.app.match_session.fields.customer_id]
+name = "Customer ID"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.match_session.fields.customer_name]
+name = "Customer name"
+type = "single_line_text_field"
+required = true
+
+  [metaobjects.app.match_session.fields.customer_name.validations]
+  max = 160
+
+[metaobjects.app.match_session.fields.source_file]
+name = "Source file"
+type = "single_line_text_field"
+
+  [metaobjects.app.match_session.fields.source_file.validations]
+  max = 255
+
+[metaobjects.app.match_session.fields.status]
+name = "Status"
+type = "single_line_text_field"
+required = true
+
+  [metaobjects.app.match_session.fields.status.validations]
+  choices = [ "In progress", "Ready", "Archived" ]
+
+[metaobjects.app.match_session.fields.row_count]
+name = "Rows"
+type = "number_integer"
+required = true
+
+[metaobjects.app.match_session.fields.matched_count]
+name = "Matched"
+type = "number_integer"
+required = true
+
+[metaobjects.app.match_session.fields.review_count]
+name = "Needs review"
+type = "number_integer"
+required = true
+
+[metaobjects.app.match_session.fields.ignored_count]
+name = "Ignored"
+type = "number_integer"
+required = true
+
+[metaobjects.app.match_session.fields.matcher_version]
+name = "Matcher version"
+type = "number_integer"
+required = true
+
+[metaobjects.app.match_session.fields.created_at]
+name = "Created at"
+type = "date_time"
+required = true
+
+[metaobjects.app.match_session.fields.saved_at]
+name = "Last saved"
+type = "date_time"
+required = true
+
+[metaobjects.app.match_session.fields.payload_1]
+name = "Session data 1"
+type = "multi_line_text_field"
+required = true
+
+[metaobjects.app.match_session.fields.payload_2]
+name = "Session data 2"
+type = "multi_line_text_field"
+
+[metaobjects.app.match_session.fields.payload_3]
+name = "Session data 3"
+type = "multi_line_text_field"
+
+[metaobjects.app.match_session.fields.payload_4]
+name = "Session data 4"
+type = "multi_line_text_field"
+
+[customer.metafields.app.match_sessions]
+name = "Product matcher sessions"
+description = "Saved product-matching sessions for this customer."
+type = "list.metaobject_reference<$app:match_session>"
+
+  [customer.metafields.app.match_sessions.access]
+  admin = "merchant_read"
 
 [webhooks]
-api_version = "2025-10"
+api_version = "2026-10"
 
-  # Handled by: /app/routes/webhooks.app.uninstalled.tsx
   [[webhooks.subscriptions]]
   uri = "/webhooks/app/uninstalled"
-  topics = ["app/uninstalled"]
+  topics = [ "app/uninstalled" ]
 
-  # Handled by: /app/routes/webhooks.app.scopes_update.tsx
   [[webhooks.subscriptions]]
-  topics = [ "app/scopes_update" ]
   uri = "/webhooks/app/scopes_update"
+  topics = [ "app/scopes_update" ]
 
-  # Webhooks can have filters
-  # Only receive webhooks for product updates with a product price >= 10.00
-  # See: https://shopify.dev/docs/apps/build/webhooks/customize/filters
-  # [[webhooks.subscriptions]]
-  # topics = ["products/update"]
-  # uri = "/webhooks/products/update"
-  # filter = "variants.price:>=10.00"
+[auth]
+redirect_urls = [ "https://shopify.dev/apps/default-app-home/api/auth" ]
 
-  # Mandatory compliance topic for public apps only
-  # See: https://shopify.dev/docs/apps/build/privacy-law-compliance
-  # [[webhooks.subscriptions]]
-  # uri = "/webhooks/customers/data_request"
-  # compliance_topics = ["customers/data_request"]
-
-  # [[webhooks.subscriptions]]
-  # uri = "/webhooks/customers/redact"
-  # compliance_topics = ["customers/redact"]
-
-  # [[webhooks.subscriptions]]
-  # uri = "/webhooks/shop/redact"
-  # compliance_topics = ["shop/redact"]
+[build]
+include_config_on_deploy = true
+automatically_update_urls_on_dev = true
