@@ -12,6 +12,8 @@ type MatchItem = {
   input: string;
   brand: string;
   itemId: string;
+  preliminaryIdentification: string;
+  preliminaryToolFamily: string;
   candidates: Candidate[];
 };
 
@@ -71,7 +73,9 @@ export function sanitizeMatchItems(value: unknown): MatchItem[] {
       input: short(item.input, 700),
       brand: short(item.brand, 80),
       itemId: short(item.itemId, 120),
-      candidates: candidates.slice(0, 8).map((rawCandidate) => {
+      preliminaryIdentification: short(item.preliminaryIdentification, 180),
+      preliminaryToolFamily: short(item.preliminaryToolFamily, 100),
+      candidates: candidates.slice(0, 12).map((rawCandidate) => {
         const candidate =
           rawCandidate && typeof rawCandidate === "object"
             ? (rawCandidate as Record<string, unknown>)
@@ -127,10 +131,10 @@ export async function analyzeToolMatches(value: unknown, signal?: AbortSignal) {
       reasoning: { effort: "low" },
       tools: [{ type: "web_search" }],
       tool_choice: "auto",
-      max_tool_calls: 5,
+      max_tool_calls: Math.min(12, Math.max(5, Math.ceil(items.length / 3))),
       max_output_tokens: 6000,
       instructions:
-        "You are a cautious industrial-tool cross-reference specialist. First identify each requested item accurately, even when it is outside the TengTools range. Use web search when a competitor brand/model or ambiguous trade term needs verification, preferring manufacturer sources. Then assess only the supplied TengTools candidates. candidateSku must be one of the supplied candidate SKUs or an empty string. Never select a product merely because one generic keyword overlaps. Treat tool family, operating method, dimensions, capacity, electrical rating, drive size, material, and set composition as hard evidence. If the closest candidate differs materially, label it closest-alternative, require review, and state the mismatch. If no same-purpose candidate exists, return no-equivalent. Do not turn a closest alternative into a confirmed equivalent.",
+        "You are a cautious industrial-tool cross-reference specialist. First identify each requested item accurately, even when it is outside the TengTools range. Use web search when a competitor brand/model or ambiguous trade term needs verification, preferring manufacturer sources. A preliminaryIdentification or preliminaryToolFamily may come from an earlier pass: verify it rather than trusting it blindly. Then assess only the supplied TengTools candidates. candidateSku must be one of the supplied candidate SKUs or an empty string. Never select a product merely because one generic keyword overlaps. Treat tool family, operating method, dimensions, capacity, electrical rating, drive size, material, and set composition as hard evidence. Equivalent means the same practical purpose with no material capability mismatch. If the closest candidate differs materially, label it closest-alternative, require review, and state every important mismatch. If no same-purpose candidate exists, return no-equivalent and an empty candidateSku. Do not turn a closest alternative into a confirmed equivalent.",
       input: JSON.stringify({ items }),
       text: {
         verbosity: "low",
@@ -160,20 +164,26 @@ export async function analyzeToolMatches(value: unknown, signal?: AbortSignal) {
   return matches.map((match) => {
     const row = Number(match.row);
     const source = byRow.get(row);
-    const candidateSku = short(match.candidateSku, 80);
-    const permitted = source?.candidates.some((candidate) => candidate.sku === candidateSku);
+    const requestedCandidateSku = short(match.candidateSku, 80);
+    const permitted = source?.candidates.some((candidate) => candidate.sku === requestedCandidateSku);
+    const confidence = ["high", "medium", "low"].includes(String(match.confidence))
+      ? String(match.confidence)
+      : "low";
+    let equivalence = ["equivalent", "closest-alternative", "no-equivalent"].includes(String(match.equivalence))
+      ? String(match.equivalence)
+      : "no-equivalent";
+    if (!permitted || !requestedCandidateSku || equivalence === "no-equivalent") {
+      equivalence = "no-equivalent";
+    }
+    const candidateSku = equivalence === "no-equivalent" ? "" : requestedCandidateSku;
     return {
       row,
       identifiedAs: short(match.identifiedAs, 180),
       toolFamily: short(match.toolFamily, 100),
-      candidateSku: permitted ? candidateSku : "",
-      equivalence: ["equivalent", "closest-alternative", "no-equivalent"].includes(String(match.equivalence))
-        ? String(match.equivalence)
-        : "no-equivalent",
-      confidence: ["high", "medium", "low"].includes(String(match.confidence))
-        ? String(match.confidence)
-        : "low",
-      requiresReview: Boolean(match.requiresReview),
+      candidateSku,
+      equivalence,
+      confidence,
+      requiresReview: Boolean(match.requiresReview) || equivalence !== "equivalent" || confidence !== "high",
       reason: short(match.reason, 500),
       warnings: Array.isArray(match.warnings) ? match.warnings.map((warning) => short(warning, 240)).filter(Boolean).slice(0, 5) : [],
       sources: Array.isArray(match.sources) ? match.sources.map((sourceUrl) => short(sourceUrl, 500)).filter((sourceUrl) => /^https:\/\//i.test(sourceUrl)).slice(0, 5) : [],

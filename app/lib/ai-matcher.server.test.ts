@@ -20,10 +20,26 @@ test("AI matcher input is bounded and strips unexpected fields", () => {
 
   const sanitized = sanitizeMatchItems(items);
   assert.equal(sanitized.length, 30);
-  assert.equal(sanitized[0].candidates.length, 8);
+  assert.equal(sanitized[0].candidates.length, 12);
   assert.equal(sanitized[0].candidates[0].description.length, 500);
   assert.equal("secret" in sanitized[0], false);
   assert.equal("internal" in sanitized[0].candidates[0], false);
+});
+
+test("AI matcher preserves bounded preliminary identification for a refined pass", () => {
+  const sanitized = sanitizeMatchItems([{
+    row: 7,
+    input: "Ambiguous competitor item",
+    preliminaryIdentification: "Non-contact AC voltage detector",
+    preliminaryToolFamily: "voltage tester",
+    candidates: Array.from({ length: 15 }, (_value, index) => ({
+      sku: `SKU-${index}`,
+      title: `Candidate ${index}`,
+    })),
+  }]);
+  assert.equal(sanitized[0].preliminaryIdentification, "Non-contact AC voltage detector");
+  assert.equal(sanitized[0].preliminaryToolFamily, "voltage tester");
+  assert.equal(sanitized[0].candidates.length, 12);
 });
 
 test("AI matcher ignores empty rows and candidates", () => {
