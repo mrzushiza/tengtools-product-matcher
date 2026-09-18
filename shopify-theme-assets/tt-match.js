@@ -6,7 +6,7 @@
   var pdfWorker=root.getAttribute('data-pdf-worker-url');
   var sessionApiUrl=root.getAttribute('data-session-api-url')||'';
   var customerKey=root.getAttribute('data-customer-key')||'customer',storageKey='tt-match-saved-'+customerKey;
-  var MATCHER_VERSION=9;
+  var MATCHER_VERSION=10;
   var products=[],productsByFamily={},productsBySku={},rows=[],activeFilter='all',sortKey='row',sortDirection=1,nextRow=1,storageReady=false,catalogReady=false,savedMatcherVersion=0,suggestionPage=1,suggestionPageSize=9,pendingDeletes={},uploadJob=null,manualContext=null,currentSessionHandle='',currentSessionName='',sourceFileName='',baseColumns=['row','inputBrand','inputId','inputTitle','quantity','unit','status','category','tengSku','tengTitle','unspsc','actions'],columnOrder=baseColumns.slice(),visibleColumns=baseColumns.slice(),columnWidths={},draggedColumn='',resizeState=null;
   var columnLabels={row:'Row',inputBrand:'Brand',inputId:'Item ID',inputTitle:'Description',quantity:'Qty',unit:'Unit',status:'Status',category:'Category',tengSku:'Teng ID',tengTitle:'Teng match',unspsc:'UNSPSC',actions:'Actions'};
   var $=function(id){return document.getElementById(id);};
@@ -402,10 +402,18 @@
       els.saveState.textContent='Your working table is kept on this device until you choose Save session.';
     }catch(error){els.saveState.textContent='Automatic saving is unavailable in this browser';}
   }
+  function normalizeRestoredRows(list){
+    return (Array.isArray(list)?list:[]).map(function(row){
+      row.inputBrand=displayCase(row.inputBrand);
+      row.inputTitle=displayCase(row.inputTitle);
+      if(Array.isArray(row.components))row.components.forEach(function(component){component.description=displayCase(component.description);});
+      return row;
+    });
+  }
   function restoreSavedRows(){
     try{
       var saved=JSON.parse(localStorage.getItem(storageKey)||'null');
-      if(saved&&Array.isArray(saved.rows)){rows=saved.rows;savedMatcherVersion=Number(saved.matcherVersion)||0;sourceFileName=text(saved.sourceFile);nextRow=Math.max(Number(saved.nextRow)||1,rows.reduce(function(max,row){return Math.max(max,Number(row.row)||0);},0)+1);}
+      if(saved&&Array.isArray(saved.rows)){rows=normalizeRestoredRows(saved.rows);savedMatcherVersion=Number(saved.matcherVersion)||0;sourceFileName=text(saved.sourceFile);nextRow=Math.max(Number(saved.nextRow)||1,rows.reduce(function(max,row){return Math.max(max,Number(row.row)||0);},0)+1);}
     }catch(error){localStorage.removeItem(storageKey);}
     storageReady=true;
   }
@@ -429,7 +437,7 @@
   }
   async function openSessionLibrary(){els.sessionList.innerHTML='<div class="ttm-session-empty">Loading saved sessions…</div>';els.sessionsDialog.showModal();try{var payload=await sessionRequest({action:'list'});els.sessionList.innerHTML=sessionListMarkup(payload.sessions||[]);}catch(error){els.sessionList.innerHTML='<div class="ttm-session-empty">'+esc(error.message||'Saved sessions could not be loaded.')+'</div>';}}
   async function loadCloudSession(handle){
-    setStatus('Opening saved session…');try{var payload=await sessionRequest({action:'load',id:handle}),session=payload.session,data=session.payload||{};rows=Array.isArray(data.rows)?data.rows:[];nextRow=Math.max(Number(data.nextRow)||1,rows.reduce(function(max,row){return Math.max(max,Number(row.row)||0);},0)+1);savedMatcherVersion=Number(data.matcherVersion)||0;sourceFileName=text(data.sourceFile||session.sourceFile);currentSessionHandle=session.handle;currentSessionName=session.name;render();if(catalogReady)await revalidateRestoredRows();els.saveState.textContent='Opened Shopify session “'+currentSessionName+'”.';setStatus('Saved session opened. Changes remain local until you choose Save session.','success');return true;}catch(error){setStatus(error.message||'The saved session could not be opened.','error');return false;}
+    setStatus('Opening saved session…');try{var payload=await sessionRequest({action:'load',id:handle}),session=payload.session,data=session.payload||{};rows=normalizeRestoredRows(data.rows);nextRow=Math.max(Number(data.nextRow)||1,rows.reduce(function(max,row){return Math.max(max,Number(row.row)||0);},0)+1);savedMatcherVersion=Number(data.matcherVersion)||0;sourceFileName=text(data.sourceFile||session.sourceFile);currentSessionHandle=session.handle;currentSessionName=session.name;render();if(catalogReady)await revalidateRestoredRows();els.saveState.textContent='Opened Shopify session “'+currentSessionName+'”.';setStatus('Saved session opened. Changes remain local until you choose Save session.','success');return true;}catch(error){setStatus(error.message||'The saved session could not be opened.','error');return false;}
   }
   function applyCandidateToReviewItem(item,query){
     var suggestions=findProducts(query,12),candidate=automaticCandidate(query,suggestions)||reviewCandidate(query,suggestions);
