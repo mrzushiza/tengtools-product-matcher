@@ -6,7 +6,7 @@
   var pdfWorker=root.getAttribute('data-pdf-worker-url');
   var sessionApiUrl=root.getAttribute('data-session-api-url')||'';
   var customerKey=root.getAttribute('data-customer-key')||'customer',storageKey='tt-match-saved-'+customerKey;
-  var MATCHER_VERSION=10;
+  var MATCHER_VERSION=11;
   var products=[],productsByFamily={},productsBySku={},rows=[],activeFilter='all',sortKey='row',sortDirection=1,nextRow=1,storageReady=false,catalogReady=false,savedMatcherVersion=0,suggestionPage=1,suggestionPageSize=9,pendingDeletes={},uploadJob=null,manualContext=null,currentSessionHandle='',currentSessionName='',sourceFileName='',baseColumns=['row','inputBrand','inputId','inputTitle','quantity','unit','status','category','tengSku','tengTitle','unspsc','actions'],columnOrder=baseColumns.slice(),visibleColumns=baseColumns.slice(),columnWidths={},columnMinWidths={row:40,inputBrand:52,inputId:76,inputTitle:120,quantity:40,unit:40,status:44,category:82,tengSku:76,tengTitle:150,unspsc:90,actions:92},draggedColumn='',resizeState=null;
   var columnLabels={row:'Row',inputBrand:'Brand',inputId:'Item ID',inputTitle:'Description',quantity:'Qty',unit:'Unit',status:'Status',category:'Category',tengSku:'Teng ID',tengTitle:'Teng match',unspsc:'UNSPSC',actions:'Actions'};
   var $=function(id){return document.getElementById(id);};
@@ -45,6 +45,7 @@
     var base=clean(query),variants=[base],pairs=[
       [/\bspanners?\b/g,'wrench'],[/\bwrench(?:es)?\b/g,'spanner'],
       [/\ballen keys?\b/g,'hex key'],[/\bhex keys?\b/g,'allen key'],
+      [/\bwire strippers?\b/g,'wire stripping plier'],[/\bwire stripping pliers?\b/g,'wire stripper'],
       [/\bshifting spanners?\b/g,'adjustable wrench'],[/\badjustable wrench(?:es)?\b/g,'shifting spanner'],
       [/\bbow saws?\b/g,'hacksaw'],[/\bhack saws?\b/g,'hacksaw'],[/\bhacksaws?\b/g,'hack saw'],
       [/\bvde\b/g,'insulated'],[/\b1000\s*v(?:olt)?s?\b/g,'insulated'],[/\binsulated\b/g,'vde']
@@ -54,7 +55,7 @@
   }
   var familyRules=[
     ['voltage-tester',/\b(?:voltage|volt|electrical)\b.*\btesters?\b|\b\d+\s*v\b.*\btesters?\b|\btesters?\b.*\b(?:voltage|volt|electrical)\b/],
-    ['wire-stripper',/\b(?:wire|cable)\b.*\bstrippers?\b|\bstrippers?\b.*\b(?:wire|cable)\b/],
+    ['wire-stripper',/\b(?:wire|cable)\b.*\bstripp(?:ers?|ing)\b|\bstripp(?:ers?|ing)\b.*\b(?:wire|cable)\b/],
     ['cable-crimper',/\b(?:cable|lug|boot lace|ferrule)\b.*\bcrimp(?:ers?|ing)?\b|\bcrimp(?:ers?|ing)?\b.*\b(?:cable|lug|boot lace|ferrule)\b/],
     ['long-nose-plier',/\b(?:long nose|needle nose)\b.*\bpliers?\b|\bpliers?\b.*\b(?:long nose|needle nose)\b/],
     ['fish-tape',/\bfish\b.*\btapes?\b|\btapes?\b.*\bfish\b/],
@@ -196,7 +197,7 @@
   function automaticCandidate(query,suggestions){
     for(var i=0;i<suggestions.length;i++){
       var item=suggestions[i],product=item.product,productText=[product.title,product.catalogTitle,product.section,product.productType].join(' '),queryFamily=productFamily(query),candidateFamily=productFamily([product.title,product.catalogTitle].join(' '))||productFamily([product.section,product.productType].join(' '));
-      if(item.score<640||!product.handle||!queryFamily||!candidateFamily||!compatibleFamily(queryFamily,candidateFamily)||!specificationCompatible(query,productText)||!capabilityAssessment(query,product).safe)continue;
+      if(item.score<640||!product.handle||!queryFamily||!candidateFamily||!productClassCompatible(query,product)||!compatibleFamily(queryFamily,candidateFamily)||!specificationCompatible(query,productText)||!capabilityAssessment(query,product).safe)continue;
       var wantedPieces=pieceCount(query),offeredPieces=pieceCount(productText);if(wantedPieces&&offeredPieces&&wantedPieces!==offeredPieces)continue;
       if(specifications(query).length||distinctiveOverlap(query,productText))return product;
     }
@@ -206,7 +207,7 @@
     var queryFamily=productFamily(query);if(!queryFamily)return null;
     for(var i=0;i<suggestions.length;i++){
       var item=suggestions[i],product=item.product,candidateFamily=product._family,productText=product._searchText;
-      if(item.score<520||!candidateFamily||!compatibleFamily(queryFamily,candidateFamily))continue;
+      if(item.score<520||!candidateFamily||!productClassCompatible(query,product)||!compatibleFamily(queryFamily,candidateFamily))continue;
       if(candidateFamily!==queryFamily&&queryFamily!=='bow-saw-blade')continue;
       var wanted=specifications(query),offered=product._specs||[];
       if(wanted.length&&offered.length&&!specificationCompatible(query,productText))continue;
@@ -215,6 +216,7 @@
     return null;
   }
   function desiredProductClass(query){var q=clean(query);if(/\b(?:complete )?(?:tool )?kits?\b/.test(q))return'kit';if(/\bsets?\b|\b\d+\s*(?:piece|pc)\b/.test(q))return'set';return'individual';}
+  function productClassCompatible(query,product){return!!(product&&(skuKey(query)===skuKey(product.sku)||product.productClass===desiredProductClass(query)));}
   function tokenStem(token){return token.replace(/ies$/,'y').replace(/(?:ches|shes|xes|zes|ses)$/,'').replace(/s$/,'');}
   function textMatchScore(value,variants,maximum){
     var haystack=clean(value),best=0;if(!haystack)return 0;
@@ -285,6 +287,7 @@
     score+=specificationScore(q,productText);
     if(requestsElectricalInsulation(q)&&isElectricalInsulated(product))score+=260;
     if(product.productClass==='kit')product.kitContents.forEach(function(item){score=Math.max(score,textMatchScore([item.title,item.keywords,item.sku].join(' '),variants,640));});
+    if(/\bcrimp(?:ers?|ing)?\b/.test(productText)&&!/\bcrimp(?:ers?|ing)?\b/.test(q))score=Math.max(0,score-180);
     if(/\bstorage\b/.test(title)&&q.indexOf('storage')===-1&&q!==id)score=Math.max(0,score-250);
     if(product.handle)score+=35;
     return Math.max(0,score);
@@ -563,14 +566,15 @@
   function clearSuggestedProduct(row){row.tengSku='';row.tengTitle='';row.tengImage='';row.tengHandle='';row.productClass='';row.unspsc='';row.unspscTitle='';row.unspscConfidence='';row.unspscReviewStatus='';row.unspscSource='';}
   function applyAiAssessment(row,assessment){
     row.identifiedAs=text(assessment.identifiedAs)||row.identifiedAs;row.equivalence=text(assessment.equivalence);row.aiConfidence=text(assessment.confidence);row.aiSources=Array.isArray(assessment.sources)?assessment.sources:[];
-    var candidate=assessment.candidateSku?productsBySku[skuKey(assessment.candidateSku)]:null;
+    var query=row.inputTitle||row.inputId,candidate=assessment.candidateSku?productsBySku[skuKey(assessment.candidateSku)]:null,classMismatch=!!(candidate&&!productClassCompatible(query,candidate));
+    if(classMismatch)candidate=null;
     if(candidate){row.tengSku=candidate.sku;row.tengTitle=candidate.title;row.tengImage=candidate.image;row.tengHandle=candidate.handle;row.productClass=candidate.productClass;row.unspsc=candidate.unspsc;row.unspscTitle=candidate.unspscTitle;row.unspscVersion=candidate.unspscVersion||'UNv260801';row.unspscConfidence=candidate.confidence;row.unspscReviewStatus=candidate.reviewStatus;row.unspscSource=candidate.unspscSource||'';}
-    else if(assessment.equivalence==='no-equivalent')clearSuggestedProduct(row);
+    else if(assessment.equivalence==='no-equivalent'||assessment.candidateSku)clearSuggestedProduct(row);
     var identifiedFamily=productFamily([assessment.identifiedAs,assessment.toolFamily,row.inputTitle].join(' '));if(identifiedFamily){row.detectedFamily=familyLabel(identifiedFamily);row.category=categoryLabel(identifiedFamily);}
-    var query=row.inputTitle||row.inputId,queryFamily=identifiedFamily||productFamily(query),localSafe=!!(candidate&&queryFamily&&candidate._family&&compatibleFamily(queryFamily,candidate._family)&&capabilityAssessment(query,candidate).safe&&specificationCompatible(query,candidate._searchText));
+    var queryFamily=identifiedFamily||productFamily(query),localSafe=!!(candidate&&productClassCompatible(query,candidate)&&queryFamily&&candidate._family&&compatibleFamily(queryFamily,candidate._family)&&capabilityAssessment(query,candidate).safe&&specificationCompatible(query,candidate._searchText));
     var tengIdentityConflict=!!(candidate&&row.inputId&&clean(row.inputBrand).indexOf('teng')!==-1&&skuKey(candidate.sku)!==skuKey(row.inputId));
     var autoConfirmed=!!(candidate&&!tengIdentityConflict&&assessment.equivalence==='equivalent'&&assessment.confidence==='high'&&!assessment.requiresReview&&localSafe);
-    row.status=autoConfirmed?'matched':'review';row.matchType=autoConfirmed?'Verified equivalent':assessment.equivalence==='closest-alternative'?'Closest alternative':assessment.equivalence==='equivalent'?'Suggested equivalent':'No safe equivalent';row.reason=text(assessment.reason)||row.reason;row.matchWarning=tengIdentityConflict?'The supplied TengTools item ID does not exactly match this product. Verify the item ID before selection.':((Array.isArray(assessment.warnings)?assessment.warnings.map(text).filter(Boolean).join(' '):'')||(assessment.requiresReview?'Review required':''));row.decision=autoConfirmed?'Automatic match':'Needs review';
+    row.status=autoConfirmed?'matched':'review';row.matchType=autoConfirmed?'Verified equivalent':assessment.equivalence==='closest-alternative'?'Closest alternative':assessment.equivalence==='equivalent'?'Suggested equivalent':'No safe equivalent';row.reason=text(assessment.reason)||row.reason;row.matchWarning=tengIdentityConflict?'The supplied TengTools item ID does not exactly match this product. Verify the item ID before selection.':classMismatch?'The suggested product type does not match the requested individual, set or kit.':((Array.isArray(assessment.warnings)?assessment.warnings.map(text).filter(Boolean).join(' '):'')||(assessment.requiresReview?'Review required':''));row.decision=autoConfirmed?'Automatic match':'Needs review';
   }
   async function aiReviewRows(imported,job){
     if(!sessionApiUrl)return {used:false,reviewed:0};
