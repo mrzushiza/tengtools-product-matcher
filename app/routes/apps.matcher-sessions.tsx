@@ -19,6 +19,16 @@ function customerIdFromRequest(request: Request) {
   return new URL(request.url).searchParams.get("logged_in_customer_id") || "";
 }
 
+const analyzeRequests = new Map<string, number[]>();
+function withinAnalyzeLimit(customerId: string) {
+  const now = Date.now();
+  const recent = (analyzeRequests.get(customerId) || []).filter((time) => now - time < 60_000);
+  if (recent.length >= 24) return false;
+  recent.push(now);
+  analyzeRequests.set(customerId, recent);
+  return true;
+}
+
 async function contextForRequest(request: Request) {
   const context = await authenticate.public.appProxy(request);
   if (!context.admin || !context.session) {
@@ -57,15 +67,32 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (!request.headers.get("content-type")?.includes("application/json")) {
     return json({ error: "JSON is required." }, { status: 415 });
   }
+  const contentLength = Number(request.headers.get("content-length") || 0);
+  if (contentLength > 300_000) {
+    return json({ error: "The request is too large." }, { status: 413 });
+  }
 
-  const body = (await request.json()) as Record<string, unknown>;
+  const rawBody = await request.text();
+  if (new TextEncoder().encode(rawBody).byteLength > 300_000) {
+    return json({ error: "The request is too large." }, { status: 413 });
+  }
+  let body: Record<string, unknown>;
+  try {
+    body = JSON.parse(rawBody) as Record<string, unknown>;
+  } catch {
+    return json({ error: "The request body is not valid JSON." }, { status: 400 });
+  }
   if (body.action === "analyze") {
     const customerId = customerIdFromRequest(request);
     if (!customerId) {
       return json({ error: "Sign in to use enhanced matching." }, { status: 401 });
     }
+    if (!withinAnalyzeLimit(customerId)) {
+      return json({ error: "Too many matching requests. Please wait one minute and try again." }, { status: 429 });
+    }
     try {
-      const matches = await analyzeToolMatches(body.items, request.signal);
+      const timeout = AbortSignal.timeout(45_000);
+      const matches = await analyzeToolMatches(body.items, AbortSignal.any([request.signal, timeout]));
       return json({ matches });
     } catch (error) {
       if (error instanceof Response) {

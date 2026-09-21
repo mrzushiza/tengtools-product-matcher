@@ -51,3 +51,19 @@ test("AI matcher ignores empty rows and candidates", () => {
   assert.equal(sanitized[0].row, 2);
   assert.deepEqual(sanitized[0].candidates, []);
 });
+
+test("AI matcher preserves set identity and never imports arbitrary fields", () => {
+  const sanitized = sanitizeMatchItems([{
+    row: 3,
+    input: "Competitor 12 piece electrician set MODEL-12",
+    brand: "Competitor",
+    itemId: "MODEL-12",
+    preliminaryIdentification: "electrician tool set",
+    preliminaryToolFamily: "tool-kit",
+    candidates: [{ sku: "KIT-1", title: "Electrician set", productClass: "set" }],
+    documentedComponents: [{ description: "should not enter the request" }],
+  }]);
+  assert.equal(sanitized[0].brand, "Competitor");
+  assert.equal(sanitized[0].itemId, "MODEL-12");
+  assert.equal("documentedComponents" in sanitized[0], false);
+});

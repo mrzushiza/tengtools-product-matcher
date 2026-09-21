@@ -38,6 +38,10 @@ const responseSchema = {
           "reason",
           "warnings",
           "sources",
+          "setOutcome",
+          "competitorSetSource",
+          "sourceAccessedAt",
+          "documentedComponents",
         ],
         properties: {
           row: { type: "integer" },
@@ -53,6 +57,25 @@ const responseSchema = {
           reason: { type: "string" },
           warnings: { type: "array", items: { type: "string" } },
           sources: { type: "array", items: { type: "string" } },
+          setOutcome: {
+            type: "string",
+            enum: ["not-a-set", "exact-set", "comparable-set", "component-alternative", "incomplete"],
+          },
+          competitorSetSource: { type: "string" },
+          sourceAccessedAt: { type: "string" },
+          documentedComponents: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              required: ["description", "quantity", "evidence"],
+              properties: {
+                description: { type: "string" },
+                quantity: { type: "string" },
+                evidence: { type: "string" },
+              },
+            },
+          },
         },
       },
     },
@@ -134,7 +157,7 @@ export async function analyzeToolMatches(value: unknown, signal?: AbortSignal) {
       max_tool_calls: Math.min(12, Math.max(5, Math.ceil(items.length / 3))),
       max_output_tokens: 6000,
       instructions:
-        "You are a cautious industrial-tool cross-reference specialist. First identify each requested item accurately, even when it is outside the TengTools range. Use web search when a competitor brand/model or ambiguous trade term needs verification, preferring manufacturer sources. A preliminaryIdentification or preliminaryToolFamily may come from an earlier pass: verify it rather than trusting it blindly. Then assess only the supplied TengTools candidates. candidateSku must be one of the supplied candidate SKUs or an empty string. TengTools item IDs are exact identities: preserve every letter, number, and suffix, and never treat a similar or prefix-related item ID as the same product. Never select a product merely because one generic keyword overlaps. A singular requested tool must match one individual product, never a set, assortment, tray, EVA module or kit. A requested set must match a set with materially equivalent contents, never one component taken from it. Treat tool family, operating method, dimensions, capacity, electrical rating, drive size, material, and set composition as hard evidence. Equivalent means the same practical purpose with no material capability mismatch. If the closest candidate differs materially, label it closest-alternative, require review, and state every important mismatch. If no same-purpose candidate exists, return no-equivalent and an empty candidateSku. Do not turn a closest alternative into a confirmed equivalent.",
+        "You are a cautious industrial-tool cross-reference specialist. First identify each requested item accurately, even when it is outside the TengTools range. Use web search when a competitor brand/model or ambiguous trade term needs verification. Source priority is: manufacturer product page, official catalogue, authorised or reputable distributor, then other reliable product documentation. A preliminaryIdentification or preliminaryToolFamily may come from an earlier pass: verify it rather than trusting it blindly. Then assess only the supplied TengTools candidates. candidateSku must be one of the supplied candidate SKUs or an empty string. TengTools item IDs are exact identities: preserve every letter, number, and suffix, and never treat a similar or prefix-related item ID as the same product. Never select a product merely because one generic keyword overlaps. A singular requested tool must match one individual product, never a set, assortment, tray, EVA module or kit. For a requested set, search first for a materially equivalent TengTools set. If there is no reliable direct match, identify the competitor brand and model, find a reliable written source that documents its contents, and return those contents individually. Never infer set contents from a photograph alone. If written contents cannot be verified, return setOutcome incomplete, no-equivalent, no documented components, and require review. Set sourceAccessedAt to today's ISO date when research is used. Treat tool family, operating method, dimensions, capacity, electrical rating, drive size, material, and set composition as hard evidence. Equivalent means the same practical purpose with no material capability mismatch. If the closest candidate differs materially, label it closest-alternative, require review, and state every important mismatch. If no same-purpose candidate exists, return no-equivalent and an empty candidateSku. Do not turn a closest alternative into a confirmed equivalent.",
       input: JSON.stringify({ items }),
       text: {
         verbosity: "low",
@@ -187,6 +210,13 @@ export async function analyzeToolMatches(value: unknown, signal?: AbortSignal) {
       reason: short(match.reason, 500),
       warnings: Array.isArray(match.warnings) ? match.warnings.map((warning) => short(warning, 240)).filter(Boolean).slice(0, 5) : [],
       sources: Array.isArray(match.sources) ? match.sources.map((sourceUrl) => short(sourceUrl, 500)).filter((sourceUrl) => /^https:\/\//i.test(sourceUrl)).slice(0, 5) : [],
+      setOutcome: ["not-a-set", "exact-set", "comparable-set", "component-alternative", "incomplete"].includes(String(match.setOutcome)) ? String(match.setOutcome) : "not-a-set",
+      competitorSetSource: /^https:\/\//i.test(short(match.competitorSetSource, 500)) ? short(match.competitorSetSource, 500) : "",
+      sourceAccessedAt: /^\d{4}-\d{2}-\d{2}$/.test(short(match.sourceAccessedAt, 10)) ? short(match.sourceAccessedAt, 10) : "",
+      documentedComponents: Array.isArray(match.documentedComponents) ? match.documentedComponents.map((rawComponent) => {
+        const component = rawComponent && typeof rawComponent === "object" ? rawComponent as Record<string, unknown> : {};
+        return { description: short(component.description, 240), quantity: short(component.quantity, 40), evidence: short(component.evidence, 300) };
+      }).filter((component) => component.description).slice(0, 100) : [],
     };
   }).filter((match) => byRow.has(match.row));
 }
